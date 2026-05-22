@@ -41,6 +41,7 @@ export async function getDemoApi(
 }
 
 // Check if a request was canceled
+// Axios provides a built-in method isCancel to check if an error was caused by a cancellation, and we also check for the specific error code "ERR_CANCELED" which is used by Axios to indicate a canceled request. This utility function allows us to easily identify canceled requests in our error handling logic, which is important for the fixed implementation of the fan-out fetch to prevent stale responses from updating state after the user has made a new selection.
 export function isCanceledRequest(error: unknown): boolean {
   return axios.isCancel(error) || (axios.isAxiosError(error) && error.code === "ERR_CANCELED");
 }
