@@ -25,25 +25,30 @@ import type {
   TenantId
 } from "./types";
 
+// Static configuration for tenants and filters used in the demo, including their IDs, labels, and hints about their dataset sizes or response times.
 const tenants: Array<{ id: TenantId; label: string; hint: string }> = [
   { id: "tenant-a", label: "Tenant A", hint: "large dataset" },
   { id: "tenant-b", label: "Tenant B", hint: "small dataset" }
 ];
 
+// Filters with hints indicating the expected response times for the slow endpoints, which helps demonstrate the
 const filters: Array<{ id: FilterId; label: string; hint: string }> = [
   { id: "all", label: "All", hint: "slow endpoints take 6s" },
   { id: "filter-1", label: "Filter 1", hint: "slow endpoints take 6s" },
   { id: "filter-2", label: "Filter 2", hint: "all endpoints return in about 1s" }
 ];
 
+// Utility functions for the demo, including a function to get the current timestamp, a function to describe the current tenant and filter context for logging purposes, and a function to merge API responses into the existing state.
 function now() {
   return new Date().toISOString();
 }
 
+// Describe the current tenant and filter context for logging purposes
 function describeContext(tenantId: TenantId, filterId: FilterId) {
   return `tenant=${tenantId} filter=${filterId}`;
 }
 
+// Merge a new API response into the existing state of API responses, keyed by the API name
 function mergeResponse(response: DemoApiResponse) {
   return (current: ApiResponses) => ({
     ...current,
@@ -51,6 +56,7 @@ function mergeResponse(response: DemoApiResponse) {
   });
 }
 
+// Custom hook to perform the "wrong" fan-out fetch, which demonstrates the race condition by allowing all API responses to update state regardless of their order or relevance to the latest tenant/filter selection.
 function useWrongFanOutFetch() {
   const tenantId = useAtomValue(selectedTenantAtom);
   const filterId = useAtomValue(selectedFilterAtom);
@@ -101,6 +107,7 @@ function useWrongFanOutFetch() {
   }, [tenantId, filterId, setError, setLoading, setResponses]);
 }
 
+// Custom hook to perform the "fixed" fan-out fetch, which addresses the race condition by aborting all in-flight requests when the tenant or filter changes, and ensuring that only responses matching the latest event sequence can update state.
 function useFixedFanOutFetch() {
   const tenantId = useAtomValue(selectedTenantAtom);
   const filterId = useAtomValue(selectedFilterAtom);
@@ -115,7 +122,11 @@ function useFixedFanOutFetch() {
   }, [latestRequestId]);
 
   useEffect(() => {
+    // Create an AbortController to allow cancellation of in-flight requests when the tenant or filter changes
+    // AbortController provides a signal that can be passed to fetch requests, and calling abort() will trigger cancellation of those requests, allowing us to prevent stale responses from updating state after the user has made a new selection. This is a key part of the fixed implementation to address the race condition demonstrated in the "wrong" implementation.
+    // AbortController is supported by Axios and no need to import additional libraries for cancellation. We just need to pass the signal from the controller to our getDemoApi calls, and call controller.abort() in the cleanup function of useEffect to cancel any in-flight requests when the tenant or filter changes.
     const controller = new AbortController();
+    // Increment the event number for this tenant/filter change, and store it in a ref and state variable to track the latest event sequence. This allows us to ensure that only responses from the latest event can update state, and any responses from previous events will be ignored as stale.
     const eventNumber = latestRequestRef.current + 1;
     let pending = demoApis.length;
 
