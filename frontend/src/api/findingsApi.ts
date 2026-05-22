@@ -36,7 +36,7 @@ export async function getDemoApi(
     },
     signal: params.signal
   });
-
+// Axios will throw an error if the request is canceled, which we can catch and check using the isCanceledRequest function defined below. If the request is successful, we return the response data, which will be typed as DemoApiResponse based on our TypeScript definitions. This function abstracts away the details of making API requests and allows us to easily fetch data from any of the configured demo APIs by name, while also supporting cancellation through the AbortSignal.
   return response.data;
 }
 
