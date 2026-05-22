@@ -37,6 +37,7 @@ export async function getDemoApi(
     signal: params.signal
   });
 
+  // Axios will throw an error if the request was canceled, so we can rely on that behavior to handle cancellation in our fixed implementation. If the request was successful, we return the response data, which will be typed as DemoApiResponse based on our TypeScript configuration for the Axios instance. This allows us to have type safety when working with the API responses in our React components.  
   return response.data;
 }
 
